@@ -7,10 +7,12 @@ def write_object(obj, attribute_names, target_uv_layers):
     output = b""
 
     encoded_name = obj.name.encode("utf-8")
+    padding = (4 - len(encoded_name)) % 4
 
     output += struct.pack("<i", len(encoded_name))
     output += encoded_name
-    
+    output += b"\x00" * padding
+
     source_uv_layer = 1
     source_uv_dim = 0
     
@@ -54,7 +56,6 @@ def write_attrs(obj, attribute_name, target_uv_layer):
     bm.free()
 
     for idx, loop in enumerate(obj.data.loops):
-        print(idx, loop.vertex_index)
         (punned,) = struct.unpack("<f", struct.pack("<i", loop.vertex_index))
         obj.data.uv_layers[source_uv_layer].data[idx].uv = Vector((punned, 0))
             
@@ -91,7 +92,7 @@ class UV_Export(bpy.types.Operator):
         for item in plan:
             output += write_object(item["object"], item["attributes"], item["targets"])
                 
-        with open("/Users/crux/Unity/Blender Export Test Project/Assets/Test Model.uv", "wb") as file:
+        with open(bpy.path.abspath("//../Assets/") + "Test Model.uv", "wb") as file:
             file.write(output)
                     
         return {'FINISHED'}
