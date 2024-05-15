@@ -2,6 +2,8 @@ import bpy
 import struct
 from mathutils import Vector
 import bmesh
+import blender_uv_exporter.ui
+
 
 def write_object(obj, attribute_names, target_uv_layers):
     output = b""
@@ -15,15 +17,16 @@ def write_object(obj, attribute_names, target_uv_layers):
 
     source_uv_layer = 1
     source_uv_dim = 0
-    
+
     output += struct.pack("<i", source_uv_layer)
     output += struct.pack("<i", source_uv_dim)
     output += struct.pack("<i", len(attribute_names))
-    
-    for (attr_name, target) in zip(attribute_names, target_uv_layers):
+
+    for attr_name, target in zip(attribute_names, target_uv_layers):
         output += write_attrs(obj, attr_name, target)
-    
+
     return output
+
 
 def write_attrs(obj, attribute_name, target_uv_layer):
     output = b""
@@ -58,11 +61,12 @@ def write_attrs(obj, attribute_name, target_uv_layer):
     for idx, loop in enumerate(obj.data.loops):
         (punned,) = struct.unpack("<f", struct.pack("<i", loop.vertex_index))
         obj.data.uv_layers[source_uv_layer].data[idx].uv = Vector((punned, 0))
-            
+
     for item in colors:
         output += struct.pack("<f", item)
-        
+
     return output
+
 
 class UV_Export(bpy.types.Operator):
     bl_idname = "uv.export"
@@ -71,37 +75,42 @@ class UV_Export(bpy.types.Operator):
     def execute(self, context: bpy.types.Context):
         plan = []
 
-        for obj in context.scene.uv_exporter_objects:
-            step = {}
-            step["object"] = obj.object
-            step["attributes"] = []
-            step["targets"] = []
+        package = blender_uv_exporter.ui.get_current_package(context)
+        for entry in package.entries:
+            for obj in entry.objects:
+                step = {}
+                step["object"] = obj.object
+                step["attributes"] = []
+                step["targets"] = []
 
-            for item in obj.items:
-                step["attributes"].append(item.attribute)
-                step["targets"].append(int(item.target_channel))
-            
-            print(step)
+                for item in entry.attributes:
+                    step["attributes"].append(item.attribute)
+                    step["targets"].append(int(item.target_channel))
 
-            plan.append(step)
-        
+                print(step)
+
+                plan.append(step)
+
         output = b""
 
         output += struct.pack("<i", len(plan))
 
         for item in plan:
             output += write_object(item["object"], item["attributes"], item["targets"])
-                
-        with open(bpy.path.abspath("//../Assets/") + "Test Model.uv", "wb") as file:
+
+        print(bpy.path.abspath(package.path) + "/" + package.label + ".uv")
+        with open(
+            bpy.path.abspath(package.path) + "/" + package.label + ".uv", "wb"
+        ) as file:
             file.write(output)
-                    
-        return {'FINISHED'}
+
+        return {"FINISHED"}
+
 
 plan = [
     {
         "object": "One",
         "attributes": ["Pose Space", "Curve Direction"],
-        "targets": [2, 1]
+        "targets": [2, 1],
     }
 ]
-
