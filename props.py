@@ -2,6 +2,7 @@ import bpy
 import blender_uv_exporter.ui
 import bmesh
 
+
 def get_attribute_items(attribute, context):
     items = []
 
@@ -40,7 +41,7 @@ class UVExporterAttribute(bpy.types.PropertyGroup):
             ("2", "UV2", "UV Channel"),
             ("3", "UV3", "UV Channel"),
         ],
-        default="1"
+        default="1",
     )  # type: ignore
     attribute: bpy.props.EnumProperty(
         name="Attribute", items=get_attribute_items
@@ -62,7 +63,7 @@ class UVExporterEntry(bpy.types.PropertyGroup):
             ("2", "UV2", "UV Channel"),
             ("3", "UV3", "UV Channel"),
         ],
-        default="1"
+        default="1",
     )  # type: ignore
     attributes: bpy.props.CollectionProperty(type=UVExporterAttribute)  # type: ignore
     attributes_index: bpy.props.IntProperty()  # type: ignore

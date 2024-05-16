@@ -101,7 +101,11 @@ def perform_export(package):
     for entry in package.entries:
         for obj in entry.objects:
             if obj["object"] not in steps:
-                steps[obj["object"]] = {"object": obj["object"], "attributes": [], "targets": []}
+                steps[obj["object"]] = {
+                    "object": obj["object"],
+                    "attributes": [],
+                    "targets": [],
+                }
 
             step = steps[obj["object"]]
 
@@ -111,10 +115,9 @@ def perform_export(package):
 
             print(step)
 
-
     for step in steps.values():
         plan.append(step)
-    
+
     for step in plan:
         print(step)
 

@@ -58,6 +58,7 @@ def remove_from_list(lst, index):
 
     return index
 
+
 class UVRootPanel(bpy.types.Panel):
     bl_idname = "OBJECT_PT_UV_root_panel"
     bl_label = "UV Exporter"
@@ -131,7 +132,6 @@ class UVPackagePanel(bpy.types.Panel):
 
         box.prop(package, "label")
 
-        
         box.prop(package, "path")
 
         box.template_list(
