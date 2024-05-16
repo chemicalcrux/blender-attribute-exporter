@@ -1,6 +1,6 @@
 import bpy
 import blender_uv_exporter.ui
-
+import bmesh
 
 def get_attribute_items(attribute, context):
     items = []
@@ -9,15 +9,18 @@ def get_attribute_items(attribute, context):
 
     if entry:
         if len(entry.objects) > 0:
-            obj = entry.objects[0]
-            for attribute in obj.object.data.attributes:
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            obj = entry.objects[0].object
+            bm = bmesh.new()
+            bm.from_object(obj, depsgraph)
+            bm.verts.ensure_lookup_table()
+
+            for attribute in bm.verts.layers.float_color:
                 if attribute.name[0] == ".":
                     continue
-                if attribute.data_type != "FLOAT_COLOR":
-                    continue
-                if attribute.domain != "POINT":
-                    continue
                 items.append((attribute.name, attribute.name, attribute.name))
+
+            bm.free()
 
     return items
 
