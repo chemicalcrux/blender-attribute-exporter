@@ -39,7 +39,12 @@ def write_attrs(obj, attribute_name, target_uv_layer):
 
     bm.verts.ensure_lookup_table()
 
-    layer = bm.verts.layers.float_color[attribute_name]
+    try:
+        layer = bm.verts.layers.float_color[attribute_name]
+    except:
+        raise ValueError(
+            f"Missing attribute: {obj.name} does not have {attribute_name}"
+        )
 
     source_uv_layer = 1
     source_uv_dim = 0
@@ -68,15 +73,37 @@ def write_attrs(obj, attribute_name, target_uv_layer):
 
     return output
 
+
+def validate_plan(plan):
+    target_map = {}
+
+    for item in plan:
+        obj = item["object"]
+        if obj not in target_map:
+            target_map[obj] = set()
+
+        for target in item["targets"]:
+            if target in target_map[obj]:
+                raise ValueError(
+                    "Target collision: "
+                    + item["object"].name
+                    + " uses channel "
+                    + str(target)
+                    + " more than once"
+                )
+            target_map[obj].add(target)
+
+
 def perform_export(package):
     plan = []
+    steps = {}
 
     for entry in package.entries:
         for obj in entry.objects:
-            step = {}
-            step["object"] = obj.object
-            step["attributes"] = []
-            step["targets"] = []
+            if obj["object"] not in steps:
+                steps[obj["object"]] = {"object": obj["object"], "attributes": [], "targets": []}
+
+            step = steps[obj["object"]]
 
             for item in entry.attributes:
                 step["attributes"].append(item.attribute)
@@ -84,7 +111,14 @@ def perform_export(package):
 
             print(step)
 
-            plan.append(step)
+
+    for step in steps.values():
+        plan.append(step)
+    
+    for step in plan:
+        print(step)
+
+    validate_plan(plan)
 
     output = b""
 
@@ -99,15 +133,21 @@ def perform_export(package):
     ) as file:
         file.write(output)
 
+
 class UV_Export(bpy.types.Operator):
     bl_idname = "uv.export"
     bl_label = "Export Data"
 
     def execute(self, context: bpy.types.Context):
         package = blender_uv_exporter.ui.get_current_package(context)
-        perform_export(package)
+
+        try:
+            perform_export(package)
+        except ValueError as e:
+            self.report({"ERROR"}, str(e))
 
         return {"FINISHED"}
+
 
 class UV_Export_All(bpy.types.Operator):
     bl_idname = "uv.export_all"
@@ -118,6 +158,7 @@ class UV_Export_All(bpy.types.Operator):
             perform_export(package)
 
         return {"FINISHED"}
+
 
 plan = [
     {
