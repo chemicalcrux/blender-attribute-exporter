@@ -58,9 +58,8 @@ def remove_from_list(lst, index):
 
     return index
 
-
-class UVScenePanel(bpy.types.Panel):
-    bl_idname = "OBJECT_PT_UV_scene_panel"
+class UVRootPanel(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_UV_root_panel"
     bl_label = "UV Exporter"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -75,8 +74,26 @@ class UVScenePanel(bpy.types.Panel):
 
         box = layout.box()
         box.label(text="Hello!!!")
-        box.operator("uv.export")
-        box.prop
+        box.operator("uv.export_all")
+
+
+class UVScenePanel(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_UV_scene_panel"
+    bl_parent_id = "OBJECT_PT_UV_root_panel"
+    bl_label = "Packages"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "UV Exporter"
+    bl_order = 0
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def draw(self, context):
+        layout = self.layout
+
+        box = layout.box()
         box.template_list(
             "UV_UL_PackageList",
             "Packages",
@@ -99,6 +116,7 @@ class UVPackagePanel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "UV Exporter"
+    bl_order = 1
 
     @classmethod
     def poll(cls, context):
@@ -108,6 +126,8 @@ class UVPackagePanel(bpy.types.Panel):
         package = get_current_package(context)
         layout = self.layout
         box = layout.box()
+
+        props = box.operator("uv.export")
 
         box.prop(package, "label")
 
@@ -130,11 +150,12 @@ class UVPackagePanel(bpy.types.Panel):
 
 class UVEntryPanel(bpy.types.Panel):
     bl_idname = "OBJECT_PT_UV_entry_panel"
-    bl_parent_id = "OBJECT_PT_UV_package_panel"
+    bl_parent_id = "OBJECT_PT_UV_root_panel"
     bl_label = "Entry"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "UV Exporter"
+    bl_order = 2
 
     @classmethod
     def poll(cls, context):
@@ -156,12 +177,12 @@ class UVEntryPanel(bpy.types.Panel):
 
 class UVObjectsPanel(bpy.types.Panel):
     bl_idname = "OBJECT_PT_UV_objects_panel"
-    bl_parent_id = "OBJECT_PT_UV_entry_panel"
+    bl_parent_id = "OBJECT_PT_UV_root_panel"
     bl_label = "Objects"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "UV Exporter"
-    bl_order = 1
+    bl_order = 3
 
     @classmethod
     def poll(cls, context):
@@ -188,12 +209,12 @@ class UVObjectsPanel(bpy.types.Panel):
 
 class UVAttributesPanel(bpy.types.Panel):
     bl_idname = "OBJECT_PT_UV_attributes_panel"
-    bl_parent_id = "OBJECT_PT_UV_entry_panel"
+    bl_parent_id = "OBJECT_PT_UV_root_panel"
     bl_label = "Attributes"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "UV Exporter"
-    bl_order = 2
+    bl_order = 4
 
     @classmethod
     def poll(cls, context):

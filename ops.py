@@ -3,6 +3,7 @@ import struct
 from mathutils import Vector
 import bmesh
 import blender_uv_exporter.ui
+import blender_uv_exporter.props
 
 
 def write_object(obj, attribute_names, target_uv_layers):
@@ -67,45 +68,56 @@ def write_attrs(obj, attribute_name, target_uv_layer):
 
     return output
 
+def perform_export(package):
+    plan = []
+
+    for entry in package.entries:
+        for obj in entry.objects:
+            step = {}
+            step["object"] = obj.object
+            step["attributes"] = []
+            step["targets"] = []
+
+            for item in entry.attributes:
+                step["attributes"].append(item.attribute)
+                step["targets"].append(int(item.target_channel))
+
+            print(step)
+
+            plan.append(step)
+
+    output = b""
+
+    output += struct.pack("<i", len(plan))
+
+    for item in plan:
+        output += write_object(item["object"], item["attributes"], item["targets"])
+
+    print(bpy.path.abspath(package.path) + "/" + package.label + ".uv")
+    with open(
+        bpy.path.abspath(package.path) + "/" + package.label + ".uv", "wb"
+    ) as file:
+        file.write(output)
 
 class UV_Export(bpy.types.Operator):
     bl_idname = "uv.export"
     bl_label = "Export Data"
 
     def execute(self, context: bpy.types.Context):
-        plan = []
-
         package = blender_uv_exporter.ui.get_current_package(context)
-        for entry in package.entries:
-            for obj in entry.objects:
-                step = {}
-                step["object"] = obj.object
-                step["attributes"] = []
-                step["targets"] = []
-
-                for item in entry.attributes:
-                    step["attributes"].append(item.attribute)
-                    step["targets"].append(int(item.target_channel))
-
-                print(step)
-
-                plan.append(step)
-
-        output = b""
-
-        output += struct.pack("<i", len(plan))
-
-        for item in plan:
-            output += write_object(item["object"], item["attributes"], item["targets"])
-
-        print(bpy.path.abspath(package.path) + "/" + package.label + ".uv")
-        with open(
-            bpy.path.abspath(package.path) + "/" + package.label + ".uv", "wb"
-        ) as file:
-            file.write(output)
+        perform_export(package)
 
         return {"FINISHED"}
 
+class UV_Export_All(bpy.types.Operator):
+    bl_idname = "uv.export_all"
+    bl_label = "Export All Data"
+
+    def execute(self, context: bpy.types.Context):
+        for package in context.scene.uv_exporter_packages:
+            perform_export(package)
+
+        return {"FINISHED"}
 
 plan = [
     {
