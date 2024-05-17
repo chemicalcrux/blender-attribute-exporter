@@ -1,12 +1,12 @@
 import bpy
-import blender_uv_exporter.ui
+from . import ui
 import bmesh
 
 
 def get_attribute_items(attribute, context):
     items = []
 
-    entry = blender_uv_exporter.ui.get_current_entry(context)
+    entry = ui.get_current_entry(context)
 
     if entry:
         if len(entry.objects) > 0:
@@ -31,12 +31,12 @@ class UVExporterObject(bpy.types.PropertyGroup):
         name="Object", type=bpy.types.Object
     )  # type: ignore
 
+
 class UVExporterTarget(bpy.types.PropertyGroup):
     channel: bpy.props.EnumProperty(
         name="Target Channel",
         items=[
-            ("-1", "Color", "Vertex Colors")
-            ("0", "UV0", "UV Channel"),
+            ("-1", "Color", "Vertex Colors"),
             ("1", "UV1", "UV Channel"),
             ("2", "UV2", "UV Channel"),
             ("3", "UV3", "UV Channel"),
@@ -54,43 +54,11 @@ class UVExporterTarget(bpy.types.PropertyGroup):
         default="1",
     )  # type: ignore
 
+
 class UVExporterAttribute(bpy.types.PropertyGroup):
     attribute: bpy.props.EnumProperty(
         name="Attribute", items=get_attribute_items
     )  # type: ignore
-    red_target_used: bpy.props.BoolProperty(
-        name="",
-        default=True
-    ) # type: ignore
-    red_target: bpy.props.PointerProperty(
-        name="Red",
-        type=UVExporterTarget
-    ) # type: ignore
-    green_target_used: bpy.props.BoolProperty(
-        name="",
-        default=True
-    ) # type: ignore
-    green_target: bpy.props.PointerProperty(
-        name="Green",
-        type=UVExporterTarget
-    ) # type: ignore
-    blue_target_used: bpy.props.BoolProperty(
-        name="",
-        default=True
-    ) # type: ignore
-    blue_target: bpy.props.PointerProperty(
-        name="Blue",
-        type=UVExporterTarget
-    ) # type: ignore
-    alpha_target_used: bpy.props.BoolProperty(
-        name="",
-        default=True
-    ) # type: ignore
-    alpha_target: bpy.props.PointerProperty(
-        name="Alpha",
-        type=UVExporterTarget
-    ) # type: ignore
-    
 
 
 class UVExporterEntry(bpy.types.PropertyGroup):
@@ -99,6 +67,17 @@ class UVExporterEntry(bpy.types.PropertyGroup):
         name="Objects", type=UVExporterObject
     )  # type: ignore
     objects_index: bpy.props.IntProperty()  # type: ignore
+    attributes: bpy.props.CollectionProperty(
+        name="Attributes", type=UVExporterAttribute
+    )  # type: ignore
+    attributes_index: bpy.props.IntProperty()  # type: ignore
+
+
+class UVExporterPackage(bpy.types.PropertyGroup):
+    label: bpy.props.StringProperty(name="Label")  # type: ignore
+    path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH", default="//")  # type: ignore
+    entries: bpy.props.CollectionProperty(type=UVExporterEntry)  # type: ignore
+    entries_index: bpy.props.IntProperty()  # type: ignore
     source_uv: bpy.props.EnumProperty(
         name="Index Channel",
         description="The UV channel that will be used to record vertex IDs.",
@@ -110,15 +89,6 @@ class UVExporterEntry(bpy.types.PropertyGroup):
         ],
         default="1",
     )  # type: ignore
-    attributes: bpy.props.CollectionProperty(type=UVExporterAttribute)  # type: ignore
-    attributes_index: bpy.props.IntProperty()  # type: ignore
-
-
-class UVExporterPackage(bpy.types.PropertyGroup):
-    label: bpy.props.StringProperty(name="Label")  # type: ignore
-    path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH", default="//")  # type: ignore
-    entries: bpy.props.CollectionProperty(type=UVExporterEntry)  # type: ignore
-    entries_index: bpy.props.IntProperty()  # type: ignore
 
 
 scene_props = {}

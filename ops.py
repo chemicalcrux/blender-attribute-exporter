@@ -2,13 +2,86 @@ import bpy
 import struct
 from mathutils import Vector
 import bmesh
-import blender_uv_exporter.ui
-import blender_uv_exporter.props
+from . import ui
+from . import props
 from typing import List, Dict, Tuple, NamedTuple, Iterator
 
 
-def write_object(obj, attribute_names, target_uv_layers):
+class Step():
+    obj: bpy.types.Object
+    source_uv: Tuple[int, int]
+    attributes: List[str]
+
+    def __init__(self, obj: bpy.types.Object, source_uv: Tuple[int, int]):
+        self.obj = obj
+        self.source_uv = source_uv
+        self.attributes = []
+
+
+class Plan:
+    steps: Dict[bpy.types.Object, Step]
+
+    def __init__(self) -> None:
+        self.steps = {}
+
+    def register(self, obj: bpy.types.Object, source: Tuple[int, int]):
+        if obj not in self.steps:
+            self.steps[obj] = Step(obj, source)
+
+    def add(self, obj: bpy.types.Object, attribute: str) -> None:
+        self.steps[obj].attributes.append(attribute)
+
+    def validate(self) -> None:
+        for obj, step in self.steps.items():
+            seen = set()
+
+            for attribute in step.attributes:
+                if attribute in seen:
+                    raise ValueError(
+                        f"Duplicate part: {obj.name} tries to export {attribute} more than once."
+                    )
+                seen.add(attribute)
+
+    def get_steps(self) -> Iterator[Step]:
+        for step in self.steps.values():
+            yield step
+
+    def get_object_count(self) -> int:
+        return len(self.steps)
+
+
+def perform_export(package: props.UVExporterPackage) -> None:
+    plan = Plan()
+
+    for entry in package.entries:
+        for obj in entry.objects:
+            plan.register(obj.object, (int(package.source_uv), 0))
+            for item in entry.attributes:
+                plan.add(obj.object, item.attribute)
+
+    plan.validate()
+
+    for step in plan.get_steps():
+        print(step)
+
     output = b""
+
+    output += struct.pack("<i", plan.get_object_count())
+
+    for step in plan.get_steps():
+        output += write_object(step)
+
+    print(bpy.path.abspath(package.path) + "/" + package.label + ".uv")
+    with open(
+        bpy.path.abspath(package.path) + "/" + package.label + ".uv", "wb"
+    ) as file:
+        file.write(output)
+
+
+def write_object(step: Step):
+    output = b""
+    
+    obj = step.obj
 
     encoded_name = obj.name.encode("utf-8")
     padding = (4 - len(encoded_name)) % 4
@@ -17,15 +90,15 @@ def write_object(obj, attribute_names, target_uv_layers):
     output += encoded_name
     output += b"\x00" * padding
 
-    source_uv_layer = 1
-    source_uv_dim = 0
+    source_uv_layer = step.source_uv[0]
+    source_uv_dim = step.source_uv[1]
 
     output += struct.pack("<i", source_uv_layer)
     output += struct.pack("<i", source_uv_dim)
-    output += struct.pack("<i", len(attribute_names))
+    output += struct.pack("<i", len(step.attributes))
 
-    for attr_name, target in zip(attribute_names, target_uv_layers):
-        output += write_attrs(obj, attr_name, target)
+    for attribute in step.attributes:
+        output += write_attrs(obj, attribute)
 
     for idx, loop in enumerate(obj.data.loops):
         if idx % 1000 == 0:
@@ -36,7 +109,7 @@ def write_object(obj, attribute_names, target_uv_layers):
     return output
 
 
-def write_attrs(obj, attribute_name, target_uv_layer):
+def write_attrs(obj: bpy.types.Object, attribute: str) -> None:
     output = b""
 
     depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -47,20 +120,17 @@ def write_attrs(obj, attribute_name, target_uv_layer):
     bm.verts.ensure_lookup_table()
 
     try:
-        layer = bm.verts.layers.float_color[attribute_name]
+        layer = bm.verts.layers.float_color[attribute]
     except:
         raise ValueError(
-            f"Missing attribute: {obj.name} does not have {attribute_name}"
+            f"Missing attribute: {obj.name} does not have {attribute}"
         )
 
-    source_uv_layer = 1
-    source_uv_dim = 0
     dimensions = 4
     vertex_count = len(bm.verts)
 
-    output += struct.pack("<i", target_uv_layer)
-    output += struct.pack("<i", dimensions)
     output += struct.pack("<i", vertex_count)
+    output += struct.pack("<i", dimensions)
 
     colors = [0] * 4 * vertex_count
 
@@ -77,90 +147,12 @@ def write_attrs(obj, attribute_name, target_uv_layer):
     return output
 
 
-class StepPart(NamedTuple):
-    attribute: str
-    source: Tuple[int, int]
-    target: Tuple[int, int]
-
-
-class Plan:
-    steps: Dict[bpy.types.Object, List[StepPart]]
-
-    def __init__(self) -> None:
-        self.steps = {}
-
-    def add(
-        self, obj: bpy.types.Object, attribute: str, source: Tuple[int, int], target: Tuple[int, int]
-    ) -> None:
-        if obj not in self.steps:
-            self.steps[obj] = []
-
-        self.steps[obj].append(
-            StepPart(attribute=attribute, source=source, target=target)
-        )
-
-    def validate(self) -> None:
-        for obj, parts in self.steps.items():
-            seen = set()
-
-            for part in parts:
-                target = (part.channel, part.component)
-                if target in seen:
-                    raise ValueError(
-                        f"Duplicate target: {obj.name} targets UV{part.channel}.{part.component} more than once"
-                    )
-                seen.add(target)
-    
-    def get_steps(self) -> Iterator[Tuple[bpy.types.Object, List[StepPart]]]:
-        for obj, parts in self.steps.items():
-            yield (obj, parts)
-
-
-def perform_export(package):
-    plan = Plan()
-
-    for entry in package.entries:
-        for obj in entry.objects:
-            for item in entry.attributes:
-                if (item.red_target_used):
-                    plan.add(obj, item.attribute, int(item.red_target.channel), int(item.red_target.component))
-                if (item.green_target_used):
-                    plan.add(obj, item.attribute, int(item.green_target.channel), int(item.green_target.component))
-                if (item.blue_target_used):
-                    plan.add(obj, item.attribute, int(item.blue_target.channel), int(item.blue_target.component))
-                if (item.alpha_target_used):
-                    plan.add(obj, item.attribute, int(item.alpha_target.channel), int(item.alpha_target.component))
-
-    plan.validate()
-
-    for step in plan.get_steps():
-        print(step)
-
-    output = b""
-
-    output += struct.pack("<i", 1)
-    output += struct.pack("<i", 1)
-    output += struct.pack("<i", 1)
-    output += struct.pack("<i", 1)
-
-    output += struct.pack("<i", len(plan))
-
-    for item in plan:
-        output += write_object(item["object"], item["attributes"], item["targets"])
-
-    print(bpy.path.abspath(package.path) + "/" + package.label + ".uv")
-    with open(
-        bpy.path.abspath(package.path) + "/" + package.label + ".uv", "wb"
-    ) as file:
-        file.write(output)
-
-
 class UV_Export(bpy.types.Operator):
     bl_idname = "uv.export"
     bl_label = "Export Data"
 
     def execute(self, context: bpy.types.Context):
-        package = blender_uv_exporter.ui.get_current_package(context)
+        package = ui.get_current_package(context)
 
         try:
             perform_export(package)

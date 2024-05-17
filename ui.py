@@ -1,6 +1,6 @@
 import bpy
 
-from blender_uv_exporter import props
+from . import props
 
 
 def thing_exists(context, getter):
@@ -136,7 +136,7 @@ class UVPackagePanel(bpy.types.Panel):
 
         box.template_list(
             "UV_UL_EntryList",
-            "Attributes",
+            "Entries",
             package,
             "entries",
             package,
@@ -146,6 +146,10 @@ class UVPackagePanel(bpy.types.Panel):
 
         row.operator("uv.entry_list_add", text="+")
         row.operator("uv.entry_list_delete", text="-")
+
+        row = box.row()
+
+        row.prop(package, "source_uv")
 
 
 class UVEntryPanel(bpy.types.Panel):
@@ -167,12 +171,6 @@ class UVEntryPanel(bpy.types.Panel):
         box = layout.box()
 
         box.prop(entry, "label")
-
-        box = layout.box()
-
-        row = box.row()
-
-        row.prop(entry, "source_uv")
 
 
 class UVObjectsPanel(bpy.types.Panel):
@@ -250,22 +248,15 @@ class UVAttributePanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return thing_exists(context, get_current_attribute)
+        return False
+        # return thing_exists(context, get_current_attribute)
 
     def draw(self, context):
         attribute = get_current_attribute(context)
         layout = self.layout
         box = layout.box()
 
-        targets = ["red", "green", "blue", "alpha"]
         box.prop(attribute, "attribute", text="")
-
-        for target in targets:
-            target = target + "_target"
-            row = box.row()
-            row.prop(attribute, target + "_used", text="")
-            row.prop(attribute.__getattribute__(target), "channel", text="")
-            row.prop(attribute.__getattribute__(target), "component", text="")
 
 class UV_UL_PackageList(bpy.types.UIList):
     def draw_item(
@@ -421,7 +412,7 @@ class UV_UL_AttributeList(bpy.types.UIList):
     ):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row()
-            row.label(text=item.attribute if item.attribute else "Attribute...")
+            row.prop(item, "attribute")
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
             layout.label(text="", icon="OBJECT_DATAMODE")
@@ -433,11 +424,7 @@ class UV_AttributeList_Add(bpy.types.Operator):
 
     def execute(self, context: bpy.types.Context):
         entry = get_current_entry(context)
-        attribute = entry.attributes.add()
-        attribute.red_target.component = "0"
-        attribute.green_target.component = "1"
-        attribute.blue_target.component = "2"
-        attribute.alpha_target.component = "3"
+        entry.attributes.add()
         return {"FINISHED"}
 
 
