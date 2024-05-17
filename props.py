@@ -31,11 +31,11 @@ class UVExporterObject(bpy.types.PropertyGroup):
         name="Object", type=bpy.types.Object
     )  # type: ignore
 
-
-class UVExporterAttribute(bpy.types.PropertyGroup):
-    target_channel: bpy.props.EnumProperty(
+class UVExporterTarget(bpy.types.PropertyGroup):
+    channel: bpy.props.EnumProperty(
         name="Target Channel",
         items=[
+            ("-1", "Color", "Vertex Colors")
             ("0", "UV0", "UV Channel"),
             ("1", "UV1", "UV Channel"),
             ("2", "UV2", "UV Channel"),
@@ -43,9 +43,54 @@ class UVExporterAttribute(bpy.types.PropertyGroup):
         ],
         default="1",
     )  # type: ignore
+    component: bpy.props.EnumProperty(
+        name="Target Component",
+        items=[
+            ("0", "X", "Component"),
+            ("1", "Y", "Component"),
+            ("2", "Z", "Component"),
+            ("3", "W", "Component"),
+        ],
+        default="1",
+    )  # type: ignore
+
+class UVExporterAttribute(bpy.types.PropertyGroup):
     attribute: bpy.props.EnumProperty(
         name="Attribute", items=get_attribute_items
     )  # type: ignore
+    red_target_used: bpy.props.BoolProperty(
+        name="",
+        default=True
+    ) # type: ignore
+    red_target: bpy.props.PointerProperty(
+        name="Red",
+        type=UVExporterTarget
+    ) # type: ignore
+    green_target_used: bpy.props.BoolProperty(
+        name="",
+        default=True
+    ) # type: ignore
+    green_target: bpy.props.PointerProperty(
+        name="Green",
+        type=UVExporterTarget
+    ) # type: ignore
+    blue_target_used: bpy.props.BoolProperty(
+        name="",
+        default=True
+    ) # type: ignore
+    blue_target: bpy.props.PointerProperty(
+        name="Blue",
+        type=UVExporterTarget
+    ) # type: ignore
+    alpha_target_used: bpy.props.BoolProperty(
+        name="",
+        default=True
+    ) # type: ignore
+    alpha_target: bpy.props.PointerProperty(
+        name="Alpha",
+        type=UVExporterTarget
+    ) # type: ignore
+    
 
 
 class UVExporterEntry(bpy.types.PropertyGroup):

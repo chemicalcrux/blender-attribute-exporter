@@ -4,6 +4,7 @@ from mathutils import Vector
 import bmesh
 import blender_uv_exporter.ui
 import blender_uv_exporter.props
+from typing import List, Dict, Tuple, NamedTuple, Iterator
 
 
 def write_object(obj, attribute_names, target_uv_layers):
@@ -25,6 +26,12 @@ def write_object(obj, attribute_names, target_uv_layers):
 
     for attr_name, target in zip(attribute_names, target_uv_layers):
         output += write_attrs(obj, attr_name, target)
+
+    for idx, loop in enumerate(obj.data.loops):
+        if idx % 1000 == 0:
+            print(idx)
+        (punned,) = struct.unpack("<f", struct.pack("<i", loop.vertex_index))
+        obj.data.uv_layers[source_uv_layer].data[idx].uv = Vector((punned, 0))
 
     return output
 
@@ -64,66 +71,77 @@ def write_attrs(obj, attribute_name, target_uv_layer):
 
     bm.free()
 
-    for idx, loop in enumerate(obj.data.loops):
-        (punned,) = struct.unpack("<f", struct.pack("<i", loop.vertex_index))
-        obj.data.uv_layers[source_uv_layer].data[idx].uv = Vector((punned, 0))
-
     for item in colors:
         output += struct.pack("<f", item)
 
     return output
 
 
-def validate_plan(plan):
-    target_map = {}
+class StepPart(NamedTuple):
+    attribute: str
+    source: Tuple[int, int]
+    target: Tuple[int, int]
 
-    for item in plan:
-        obj = item["object"]
-        if obj not in target_map:
-            target_map[obj] = set()
 
-        for target in item["targets"]:
-            if target in target_map[obj]:
-                raise ValueError(
-                    "Target collision: "
-                    + item["object"].name
-                    + " uses channel "
-                    + str(target)
-                    + " more than once"
-                )
-            target_map[obj].add(target)
+class Plan:
+    steps: Dict[bpy.types.Object, List[StepPart]]
+
+    def __init__(self) -> None:
+        self.steps = {}
+
+    def add(
+        self, obj: bpy.types.Object, attribute: str, source: Tuple[int, int], target: Tuple[int, int]
+    ) -> None:
+        if obj not in self.steps:
+            self.steps[obj] = []
+
+        self.steps[obj].append(
+            StepPart(attribute=attribute, source=source, target=target)
+        )
+
+    def validate(self) -> None:
+        for obj, parts in self.steps.items():
+            seen = set()
+
+            for part in parts:
+                target = (part.channel, part.component)
+                if target in seen:
+                    raise ValueError(
+                        f"Duplicate target: {obj.name} targets UV{part.channel}.{part.component} more than once"
+                    )
+                seen.add(target)
+    
+    def get_steps(self) -> Iterator[Tuple[bpy.types.Object, List[StepPart]]]:
+        for obj, parts in self.steps.items():
+            yield (obj, parts)
 
 
 def perform_export(package):
-    plan = []
-    steps = {}
+    plan = Plan()
 
     for entry in package.entries:
         for obj in entry.objects:
-            if obj["object"] not in steps:
-                steps[obj["object"]] = {
-                    "object": obj["object"],
-                    "attributes": [],
-                    "targets": [],
-                }
-
-            step = steps[obj["object"]]
-
             for item in entry.attributes:
-                step["attributes"].append(item.attribute)
-                step["targets"].append(int(item.target_channel))
+                if (item.red_target_used):
+                    plan.add(obj, item.attribute, int(item.red_target.channel), int(item.red_target.component))
+                if (item.green_target_used):
+                    plan.add(obj, item.attribute, int(item.green_target.channel), int(item.green_target.component))
+                if (item.blue_target_used):
+                    plan.add(obj, item.attribute, int(item.blue_target.channel), int(item.blue_target.component))
+                if (item.alpha_target_used):
+                    plan.add(obj, item.attribute, int(item.alpha_target.channel), int(item.alpha_target.component))
 
-            print(step)
+    plan.validate()
 
-    for step in steps.values():
-        plan.append(step)
-
-    for step in plan:
+    for step in plan.get_steps():
         print(step)
 
-    validate_plan(plan)
-
     output = b""
+
+    output += struct.pack("<i", 1)
+    output += struct.pack("<i", 1)
+    output += struct.pack("<i", 1)
+    output += struct.pack("<i", 1)
 
     output += struct.pack("<i", len(plan))
 
@@ -161,12 +179,3 @@ class UV_Export_All(bpy.types.Operator):
             perform_export(package)
 
         return {"FINISHED"}
-
-
-plan = [
-    {
-        "object": "One",
-        "attributes": ["Pose Space", "Curve Direction"],
-        "targets": [2, 1],
-    }
-]

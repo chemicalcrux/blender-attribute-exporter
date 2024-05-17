@@ -239,6 +239,34 @@ class UVAttributesPanel(bpy.types.Panel):
         row.operator("uv.attribute_list_delete", text="-")
 
 
+class UVAttributePanel(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_UV_attribute_panel"
+    bl_parent_id = "OBJECT_PT_UV_attributes_panel"
+    bl_label = "Attribute"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "UV Exporter"
+    bl_order = 4
+
+    @classmethod
+    def poll(cls, context):
+        return thing_exists(context, get_current_attribute)
+
+    def draw(self, context):
+        attribute = get_current_attribute(context)
+        layout = self.layout
+        box = layout.box()
+
+        targets = ["red", "green", "blue", "alpha"]
+        box.prop(attribute, "attribute", text="")
+
+        for target in targets:
+            target = target + "_target"
+            row = box.row()
+            row.prop(attribute, target + "_used", text="")
+            row.prop(attribute.__getattribute__(target), "channel", text="")
+            row.prop(attribute.__getattribute__(target), "component", text="")
+
 class UV_UL_PackageList(bpy.types.UIList):
     def draw_item(
         self,
@@ -393,11 +421,7 @@ class UV_UL_AttributeList(bpy.types.UIList):
     ):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row()
-            row.separator()
-            row.separator()
-            row.separator()
-            row.prop(item, "target_channel", text="")
-            row.prop(item, "attribute", text="")
+            row.label(text=item.attribute if item.attribute else "Attribute...")
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
             layout.label(text="", icon="OBJECT_DATAMODE")
@@ -409,7 +433,11 @@ class UV_AttributeList_Add(bpy.types.Operator):
 
     def execute(self, context: bpy.types.Context):
         entry = get_current_entry(context)
-        entry.attributes.add()
+        attribute = entry.attributes.add()
+        attribute.red_target.component = "0"
+        attribute.green_target.component = "1"
+        attribute.blue_target.component = "2"
+        attribute.alpha_target.component = "3"
         return {"FINISHED"}
 
 
