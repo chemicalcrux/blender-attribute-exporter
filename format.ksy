@@ -2,6 +2,9 @@ meta:
   id: uv_data
   endian: le
 seq:
+  - id: version
+    doc: Incremented every time a change is made. Starts at 1.
+    type: s4
   - id: num_objects
     type: s4
     doc: The number of Blender objects with vertex data

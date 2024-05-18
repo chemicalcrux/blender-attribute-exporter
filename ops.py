@@ -6,6 +6,7 @@ from . import ui
 from . import props
 from typing import List, Dict, Tuple, NamedTuple, Iterator
 
+FORMAT_VERSION = 1
 
 class Step():
     obj: bpy.types.Object
@@ -66,6 +67,7 @@ def perform_export(package: props.UVExporterPackage) -> None:
 
     output = b""
 
+    output += struct.pack("<i", FORMAT_VERSION)
     output += struct.pack("<i", plan.get_object_count())
 
     for step in plan.get_steps():
