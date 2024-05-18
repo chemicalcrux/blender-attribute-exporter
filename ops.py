@@ -128,6 +128,12 @@ def write_attrs(obj: bpy.types.Object, attribute: str) -> None:
 
     dimensions = 4
     vertex_count = len(bm.verts)
+    encoded_name = attribute.encode("utf-8")
+    padding = (4 - len(encoded_name)) % 4
+
+    output += struct.pack("<i", len(encoded_name))
+    output += encoded_name
+    output += b"\x00" * padding
 
     output += struct.pack("<i", vertex_count)
     output += struct.pack("<i", dimensions)

@@ -33,6 +33,14 @@ types:
   record:
     doc: A single attribute
     seq:
+      - id: name_length
+        type: s4
+      - id: name
+        type: str
+        size: name_length
+        encoding: UTF-8
+      - id: padding
+        size: (4 - name_length) % 4
       - id: vertex_count
         type: s4
       - id: dimensions
