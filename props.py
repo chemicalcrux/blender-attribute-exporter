@@ -16,10 +16,17 @@ def get_attribute_items(attribute, context):
             bm.from_object(obj, depsgraph)
             bm.verts.ensure_lookup_table()
 
-            for attribute in bm.verts.layers.float_color:
-                if attribute.name[0] == ".":
-                    continue
-                items.append((attribute.name, attribute.name, attribute.name))
+            options = [
+                bm.verts.layers.float_color,
+                bm.verts.layers.float_vector,
+                bm.verts.layers.float
+            ]
+
+            for option in options:
+                for attribute in option:
+                    if attribute.name[0] == ".":
+                        continue
+                    items.append((attribute.name, attribute.name, attribute.name))
 
             bm.free()
 

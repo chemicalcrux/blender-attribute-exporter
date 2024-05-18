@@ -119,14 +119,22 @@ def write_attrs(obj: bpy.types.Object, attribute: str) -> None:
 
     bm.verts.ensure_lookup_table()
 
-    try:
+    print("Attribute: " + attribute)
+
+    if attribute in bm.verts.layers.float_color:
         layer = bm.verts.layers.float_color[attribute]
-    except:
+        dimensions = 4
+    elif attribute in bm.verts.layers.float_vector:
+        layer = bm.verts.layers.float_vector[attribute]
+        dimensions = 3
+    elif attribute in bm.verts.layers.float:
+        layer = bm.verts.layers.float[attribute]
+        dimensions = 1
+    else:
         raise ValueError(
             f"Missing attribute: {obj.name} does not have {attribute}"
         )
 
-    dimensions = 4
     vertex_count = len(bm.verts)
     encoded_name = attribute.encode("utf-8")
     padding = (4 - len(encoded_name)) % 4
@@ -138,12 +146,15 @@ def write_attrs(obj: bpy.types.Object, attribute: str) -> None:
     output += struct.pack("<i", vertex_count)
     output += struct.pack("<i", dimensions)
 
-    colors = [0] * 4 * vertex_count
+    colors = [0] * dimensions * vertex_count
 
     for item_index, item in enumerate(bm.verts):
-        for dim, color in enumerate(item[layer]):
-            index = item_index * 4 + dim
-            colors[index] = color
+        if dimensions == 1:
+            colors[item_index] = item[layer]
+        else:
+            for dim, color in enumerate(item[layer]):
+                index = item_index * dimensions + dim
+                colors[index] = color
 
     bm.free()
 
