@@ -3,12 +3,12 @@ from . import ui
 import bmesh
 
 
-def get_attribute_items(attribute, context):
-    items = []
-
+def refresh_attribute_choices(self, context) -> None:
     entry = ui.get_current_entry(context)
 
     if entry:
+        context.scene.attribute_choices.clear()
+
         if len(entry.objects) > 0:
             depsgraph = bpy.context.evaluated_depsgraph_get()
             obj = entry.objects[0].object
@@ -26,11 +26,12 @@ def get_attribute_items(attribute, context):
                 for attribute in option:
                     if attribute.name[0] == ".":
                         continue
-                    items.append((attribute.name, attribute.name, attribute.name))
+                    choice = context.scene.attribute_choices.add()
+                    choice.attribute = attribute.name
+                    choice.name = attribute.name
+                    print(choice.attribute)
 
             bm.free()
-
-    return items
 
 
 class UVExporterObject(bpy.types.PropertyGroup):
@@ -63,8 +64,17 @@ class UVExporterTarget(bpy.types.PropertyGroup):
 
 
 class UVExporterAttribute(bpy.types.PropertyGroup):
-    attribute: bpy.props.EnumProperty(
-        name="Attribute", items=get_attribute_items
+    attribute: bpy.props.StringProperty(
+        name="Attribute"
+    )  # type: ignore
+
+
+# can't choose from a collection of strings, so we have to choose
+# from a collection of UVExporterAttribute -- so we need
+# UVExporterAttributeSelection to hold a single #UVExporterAttribute.
+class UVExporterAttributeSelection(bpy.types.PropertyGroup):
+    selection: bpy.props.PointerProperty(
+        name="Attribute", type=UVExporterAttribute
     )  # type: ignore
 
 
@@ -75,7 +85,7 @@ class UVExporterEntry(bpy.types.PropertyGroup):
     )  # type: ignore
     objects_index: bpy.props.IntProperty()  # type: ignore
     attributes: bpy.props.CollectionProperty(
-        name="Attributes", type=UVExporterAttribute
+        name="Attributes", type=UVExporterAttributeSelection
     )  # type: ignore
     attributes_index: bpy.props.IntProperty()  # type: ignore
 
@@ -84,7 +94,7 @@ class UVExporterPackage(bpy.types.PropertyGroup):
     label: bpy.props.StringProperty(name="Label")  # type: ignore
     path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH", default="//")  # type: ignore
     entries: bpy.props.CollectionProperty(type=UVExporterEntry)  # type: ignore
-    entries_index: bpy.props.IntProperty()  # type: ignore
+    entries_index: bpy.props.IntProperty(update=refresh_attribute_choices)  # type: ignore
     source_uv: bpy.props.EnumProperty(
         name="Index Channel",
         description="The UV channel that will be used to record vertex IDs.",
@@ -105,9 +115,12 @@ scene_props["uv_exporter_packages"] = bpy.props.CollectionProperty(
 )
 
 scene_props["uv_exporter_packages_index"] = bpy.props.IntProperty(
-    name="Objects index", description="Object list index"
+    name="Objects index", description="Object list index", update=refresh_attribute_choices
 )
 
+scene_props["attribute_choices"] = bpy.props.CollectionProperty(
+    name="Attribute Choices", type=UVExporterAttribute
+)
 
 def register():
     for id, prop in scene_props.items():

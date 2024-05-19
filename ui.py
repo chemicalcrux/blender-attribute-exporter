@@ -222,6 +222,9 @@ class UVAttributesPanel(bpy.types.Panel):
         entry = get_current_entry(context)
         layout = self.layout
         box = layout.box()
+
+        box.operator("uv.refresh")
+
         box.template_list(
             "UV_UL_AttributeList",
             "Attributes",
@@ -412,7 +415,7 @@ class UV_UL_AttributeList(bpy.types.UIList):
     ):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row()
-            row.prop(item, "attribute")
+            row.prop_search(item.selection, "attribute", context.scene, "attribute_choices")
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
             layout.label(text="", icon="OBJECT_DATAMODE")

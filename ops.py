@@ -58,7 +58,7 @@ def perform_export(package: props.UVExporterPackage) -> None:
         for obj in entry.objects:
             plan.register(obj.object, (int(package.source_uv), 0))
             for item in entry.attributes:
-                plan.add(obj.object, item.attribute)
+                plan.add(obj.object, item.selection.attribute)
 
     plan.validate()
 
@@ -189,4 +189,13 @@ class UV_Export_All(bpy.types.Operator):
         for package in context.scene.uv_exporter_packages:
             perform_export(package)
 
+        return {"FINISHED"}
+
+
+class UV_Refresh(bpy.types.Operator):
+    bl_idname = "uv.refresh"
+    bl_label = "Refresh Attribute Choices"
+
+    def execute(self, context: bpy.types.Context):
+        props.refresh_attribute_choices(self, context)
         return {"FINISHED"}
