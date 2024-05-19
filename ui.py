@@ -261,6 +261,7 @@ class UVAttributePanel(bpy.types.Panel):
 
         box.prop(attribute, "attribute", text="")
 
+
 class UV_UL_PackageList(bpy.types.UIList):
     def draw_item(
         self,
@@ -415,7 +416,9 @@ class UV_UL_AttributeList(bpy.types.UIList):
     ):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row()
-            row.prop_search(item.selection, "attribute", context.scene, "attribute_choices")
+            row.prop_search(
+                item.selection, "attribute", context.scene, "attribute_choices"
+            )
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
             layout.label(text="", icon="OBJECT_DATAMODE")
@@ -445,4 +448,80 @@ class UV_AttributeList_Delete(bpy.types.Operator):
         index = entry.attributes_index
 
         entry.item_index = remove_from_list(lst, index)
+        return {"FINISHED"}
+
+
+class UVGeonodePanel(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_UV_geonode_panel"
+    bl_label = "Geonode Toggles"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "UV Exporter"
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def draw(self, context):
+        layout = self.layout
+
+        box = layout.box()
+
+        box.template_list(
+            "UV_UL_GeonodeList",
+            "GeoNode Trees",
+            context.scene,
+            "toggled_geonode_trees",
+            context.scene,
+            "toggled_geonode_trees_index",
+        )
+
+        row = box.row()
+
+        row.operator("uv.geonode_list_add", text="+")
+        row.operator("uv.geonode_list_delete", text="-")
+
+
+class UV_UL_GeonodeList(bpy.types.UIList):
+    def draw_item(
+        self,
+        context,
+        layout: bpy.types.UILayout,
+        data,
+        item,
+        icon,
+        active_data,
+        active_propname,
+        index,
+    ):
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
+            row = layout.row()
+            row.prop_search(item, "tree", bpy.data, "node_groups")
+        elif self.layout_type in {"GRID"}:
+            layout.alignment = "CENTER"
+            layout.label(text="", icon="OBJECT_DATAMODE")
+
+
+class UV_UL_GeonodeList_Add(bpy.types.Operator):
+    bl_idname = "uv.geonode_list_add"
+    bl_label = "Add tree"
+
+    def execute(self, context: bpy.types.Context):
+        context.scene.toggled_geonode_trees.add()
+        return {"FINISHED"}
+
+
+class UV_UL_GeonodeList_Delete(bpy.types.Operator):
+    bl_idname = "uv.geonode_list_delete"
+    bl_label = "Delete tree"
+
+    @classmethod
+    def poll(self, context: bpy.types.Context):
+        return len(context.scene.toggled_geonode_trees) > 0
+
+    def execute(self, context: bpy.types.Context):
+        lst = context.scene.toggled_geonode_trees
+        index = context.scene.toggled_geonode_trees_index
+
+        context.scene.toggled_geonode_trees_index = remove_from_list(lst, index)
         return {"FINISHED"}
