@@ -60,10 +60,10 @@ def perform_export(
     plan = Plan()
 
     for entry in package.entries:
-        for obj in entry.objects:
-            plan.register(obj.object, (int(package.source_uv), 0))
+        for obj in entry.get_objects():
+            plan.register(obj, (int(package.source_uv), 0))
             for item in entry.attributes:
-                plan.add(obj.object, item.selection.attribute)
+                plan.add(obj, item.selection.attribute)
 
     plan.validate()
 

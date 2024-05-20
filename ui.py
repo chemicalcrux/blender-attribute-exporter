@@ -36,7 +36,16 @@ def get_current_object(context):
         object = entry.objects[index]
         return object
     except:
-        return None
+        pass
+    
+    try:
+        index = entry.collections_index
+        collection = entry.collections[index]
+        return collection.objects[0]
+    except:
+        pass
+
+    return None
 
 
 def get_current_attribute(context):
@@ -190,6 +199,20 @@ class UVObjectsPanel(bpy.types.Panel):
         entry = get_current_entry(context)
         layout = self.layout
         box = layout.box()
+        box.template_list(
+            "UV_UL_CollectionList",
+            "Collections",
+            entry,
+            "collections",
+            entry,
+            "collections_index",
+        )
+
+        row = box.row()
+
+        row.operator("uv.collection_list_add", text="+")
+        row.operator("uv.collection_list_delete", text="-")
+
         box.template_list(
             "UV_UL_ObjectList",
             "Objects",
@@ -353,6 +376,54 @@ class UV_EntryList_Delete(bpy.types.Operator):
         package.entries_index = remove_from_list(lst, index)
 
         return {"FINISHED"}
+
+
+class UV_UL_CollectionList(bpy.types.UIList):
+    def draw_item(
+        self,
+        context,
+        layout: bpy.types.UILayout,
+        data,
+        item,
+        icon,
+        active_data,
+        active_propname,
+        index,
+    ):
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
+            row = layout.row()
+            row.prop(item, "pointer")
+        elif self.layout_type in {"GRID"}:
+            layout.alignment = "CENTER"
+            layout.label(text="", icon="OBJECT_DATAMODE")
+
+
+class UV_CollectionList_Add(bpy.types.Operator):
+    bl_idname = "uv.collection_list_add"
+    bl_label = "Add view"
+
+    def execute(self, context: bpy.types.Context):
+        entry = get_current_entry(context)
+        entry.collections.add()
+        return {"FINISHED"}
+
+
+class UV_CollectionList_Delete(bpy.types.Operator):
+    bl_idname = "uv.collection_list_delete"
+    bl_label = "Delete view"
+
+    @classmethod
+    def poll(self, context: bpy.types.Context):
+        return thing_exists(context, get_current_object)
+
+    def execute(self, context: bpy.types.Context):
+        entry = get_current_entry(context)
+        lst = entry.collections
+        index = entry.collections_index
+
+        entry.collections_index = remove_from_list(lst, index)
+        return {"FINISHED"}
+
 
 
 class UV_UL_ObjectList(bpy.types.UIList):

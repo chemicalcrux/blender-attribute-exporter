@@ -1,3 +1,4 @@
+from typing import Iterator, List
 import bmesh
 import bpy
 
@@ -12,8 +13,10 @@ def refresh_attribute_choices(self, context) -> None:
     if entry:
         context.scene.attribute_choices.clear()
 
-        if len(entry.objects) > 0:
-            obj = entry.objects[0].object
+        objects = entry.get_objects()
+
+        if len(objects) > 0:
+            obj = objects[0]
 
             with EnsureGeonodes(context, [obj]):
                 depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -37,6 +40,13 @@ def refresh_attribute_choices(self, context) -> None:
                         print(choice.attribute)
 
                 bm.free()
+
+
+class UVExporterCollection(bpy.types.PropertyGroup):
+    pointer: bpy.props.PointerProperty(
+        name="Collection", type=bpy.types.Collection
+    )  # type: ignore
+
 
 
 class UVExporterObject(bpy.types.PropertyGroup):
@@ -83,6 +93,10 @@ class UVExporterAttributeSelection(bpy.types.PropertyGroup):
 
 class UVExporterEntry(bpy.types.PropertyGroup):
     label: bpy.props.StringProperty(name="Label")  # type: ignore
+    collections: bpy.props.CollectionProperty(
+        name="Collections", type=UVExporterCollection
+    )  # type: ignore
+    collections_index: bpy.props.IntProperty()  # type: ignore
     objects: bpy.props.CollectionProperty(
         name="Objects", type=UVExporterObject
     )  # type: ignore
@@ -92,6 +106,17 @@ class UVExporterEntry(bpy.types.PropertyGroup):
     )  # type: ignore
     attributes_index: bpy.props.IntProperty()  # type: ignore
 
+    def get_objects(self) -> List[bpy.types.Object]:
+        result = set()
+
+        for obj in self.objects:
+            result.add(obj.object)
+
+        for collection in self.collections:
+            for obj in collection.pointer.objects:
+                result.add(obj)
+
+        return list(result)
 
 class UVExporterPackage(bpy.types.PropertyGroup):
     label: bpy.props.StringProperty(name="Label")  # type: ignore
