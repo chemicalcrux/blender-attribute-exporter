@@ -32,20 +32,9 @@ def get_current_object(context):
     entry = get_current_entry(context)
 
     try:
-        index = entry.objects_index
-        object = entry.objects[index]
-        return object
+        return entry.get_objects()[0]
     except:
-        pass
-    
-    try:
-        index = entry.collections_index
-        collection = entry.collections[index]
-        return collection.all_objects[0]
-    except:
-        pass
-
-    return None
+        return None
 
 
 def get_current_attribute(context):
