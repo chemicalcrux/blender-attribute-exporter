@@ -28,11 +28,20 @@ def get_current_entry(context):
         return None
 
 
+def get_current_collection(context):
+    entry = get_current_entry(context)
+
+    try:
+        return entry.collections[entry.collections_index]
+    except:
+        return None
+
+
 def get_current_object(context):
     entry = get_current_entry(context)
 
     try:
-        return entry.get_objects()[0]
+        return entry.objects[entry.objects_index]
     except:
         return None
 
@@ -403,7 +412,7 @@ class UV_CollectionList_Delete(bpy.types.Operator):
 
     @classmethod
     def poll(self, context: bpy.types.Context):
-        return thing_exists(context, get_current_object)
+        return thing_exists(context, get_current_collection)
 
     def execute(self, context: bpy.types.Context):
         entry = get_current_entry(context)
