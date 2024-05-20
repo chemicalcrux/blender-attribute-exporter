@@ -17,6 +17,7 @@ def refresh_attribute_choices(self, context) -> None:
 
         if len(objects) > 0:
             obj = objects[0]
+            print(obj)
 
             with EnsureGeonodes(context, [obj]):
                 depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -118,9 +119,7 @@ class UVExporterEntry(bpy.types.PropertyGroup):
                 if obj.visible_get():
                     result.add(obj)
 
-        print(result)
-
-        return list(result)
+        return list(filter(lambda x: x.type == 'MESH', result))
 
 class UVExporterPackage(bpy.types.PropertyGroup):
     label: bpy.props.StringProperty(name="Label")  # type: ignore
