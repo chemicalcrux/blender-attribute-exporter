@@ -1,4 +1,5 @@
 import struct
+import os.path
 from typing import Dict, Iterator, List, Tuple
 
 import bmesh
@@ -78,10 +79,12 @@ def perform_export(
     with EnsureGeonodes(context, [step.obj for step in plan.get_steps()]):
         for step in plan.get_steps():
             output += write_object(step)
+    
+    filepath = bpy.path.abspath(package.path)
+    filepath = os.path.join(filepath, package.label + ".attrdata")
 
-    print(bpy.path.abspath(package.path) + "/" + package.label + ".uv")
     with open(
-        bpy.path.abspath(package.path) + "/" + package.label + ".uv", "wb"
+        filepath, "wb"
     ) as file:
         file.write(output)
 
