@@ -111,7 +111,7 @@ class UVExporterEntry(bpy.types.PropertyGroup):
         result = set()
 
         for obj in self.objects:
-            if obj.visible_get():
+            if obj.object.visible_get():
                 result.add(obj.object)
 
         for collection in self.collections:
