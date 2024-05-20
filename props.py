@@ -113,7 +113,7 @@ class UVExporterEntry(bpy.types.PropertyGroup):
             result.add(obj.object)
 
         for collection in self.collections:
-            for obj in collection.pointer.objects:
+            for obj in collection.pointer.all_objects:
                 result.add(obj)
 
         return list(result)

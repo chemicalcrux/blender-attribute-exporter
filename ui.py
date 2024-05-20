@@ -41,7 +41,7 @@ def get_current_object(context):
     try:
         index = entry.collections_index
         collection = entry.collections[index]
-        return collection.objects[0]
+        return collection.all_objects[0]
     except:
         pass
 
