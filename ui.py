@@ -1,6 +1,6 @@
 import bpy
 
-from . import props
+from . import props, library
 
 
 def thing_exists(context, getter):
@@ -82,6 +82,10 @@ class UVRootPanel(bpy.types.Panel):
 
         box = layout.box()
         box.label(text="Hello!!!")
+
+        if not library.library_exists():
+            box.operator("uv.link_library")
+
         box.operator("uv.export_all")
 
 
@@ -154,9 +158,8 @@ class UVPackagePanel(bpy.types.Panel):
         row.operator("uv.entry_list_add", text="+")
         row.operator("uv.entry_list_delete", text="-")
 
-        row = box.row()
-
-        row.prop(package, "source_uv")
+        box.prop(package, "source_uv")
+        box.prop(package, "default_vertex_storage")
 
 
 class UVEntryPanel(bpy.types.Panel):

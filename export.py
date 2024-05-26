@@ -6,20 +6,22 @@ import bmesh
 import bpy
 from mathutils import Vector
 
-from . import props
+from . import props, library
 from .context_managers import EnsureGeonodes
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 
 
 class Step:
     obj: bpy.types.Object
     source_uv: Tuple[int, int]
+    vertex_storage: str
     attributes: List[str]
 
-    def __init__(self, obj: bpy.types.Object, source_uv: Tuple[int, int]):
+    def __init__(self, obj: bpy.types.Object, source_uv: Tuple[int, int], vertex_storage: str):
         self.obj = obj
         self.source_uv = source_uv
+        self.vertex_storage = vertex_storage
         self.attributes = []
 
 
@@ -29,9 +31,9 @@ class Plan:
     def __init__(self) -> None:
         self.steps = {}
 
-    def register(self, obj: bpy.types.Object, source: Tuple[int, int]):
+    def register(self, obj: bpy.types.Object, source: Tuple[int, int], vertex_storage: str):
         if obj not in self.steps:
-            self.steps[obj] = Step(obj, source)
+            self.steps[obj] = Step(obj, source, vertex_storage)
 
     def add(self, obj: bpy.types.Object, attribute: str) -> None:
         self.steps[obj].attributes.append(attribute)
@@ -62,7 +64,7 @@ def perform_export(
 
     for entry in package.entries:
         for obj in entry.get_objects():
-            plan.register(obj, (int(package.source_uv), 0))
+            plan.register(obj, (int(package.source_uv), 0), package.default_vertex_storage)
             for item in entry.attributes:
                 plan.add(obj, item.selection.attribute)
 
@@ -88,7 +90,6 @@ def perform_export(
     ) as file:
         file.write(output)
 
-
 def write_object(step: Step):
     output = b""
 
@@ -108,17 +109,42 @@ def write_object(step: Step):
     output += struct.pack("<i", source_uv_dim)
     output += struct.pack("<i", len(step.attributes))
 
+    while len(obj.data.uv_layers) <= source_uv_layer:
+        print("Adding a UV map to " + obj.name)
+        obj.data.uv_layers.new()
+
+    if step.vertex_storage == 'MODIFIER':
+        node_tree = library.get_vertex_node_tree()
+        found = False
+
+        for modifier in obj.modifiers:
+            if modifier.type == "NODES" and modifier.node_group == node_tree:
+                found = True
+                break
+
+        if not found: 
+            print("Attaching a modifier to " + obj.name)
+            modifier = obj.modifiers.new("Vertex IDs", 'NODES')
+            modifier.node_group = library.get_vertex_node_tree()
+
+        for layer in obj.data.uv_layers:
+            if layer.name == "Vertex ID":
+                layer.name = "UV Map"
+                print("Renamed an old UV layer!")
+
+        obj.data.uv_layers[source_uv_layer].name = "Vertex ID"
+
+
     for attribute in step.attributes:
         output += write_attrs(obj, attribute)
 
-    for idx, loop in enumerate(obj.data.loops):
-        if idx % 1000 == 0:
-            print(idx)
-        (punned,) = struct.unpack("<f", struct.pack("<i", loop.vertex_index))
-        obj.data.uv_layers[source_uv_layer].data[idx].uv = Vector((punned, 0))
+    if step.vertex_storage == 'BAKED':
+        print("Baking vertex indices")
+
+        for idx, loop in enumerate(obj.data.loops):
+            obj.data.uv_layers[source_uv_layer].data[idx].uv = Vector((loop.vertex_index, 0))
 
     return output
-
 
 def write_attrs(obj: bpy.types.Object, attribute: str) -> None:
     output = b""

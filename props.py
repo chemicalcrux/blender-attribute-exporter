@@ -137,6 +137,14 @@ class UVExporterPackage(bpy.types.PropertyGroup):
         ],
         default="1",
     )  # type: ignore
+    default_vertex_storage : bpy.props.EnumProperty(
+        name="Vertex Storage",
+        description="How vertex data gets stored, by default",
+        items=[
+            ("MODIFIER", "Modifier", "Non-destructively set UVs with a modifier"),
+            ("BAKED", "Baked", "Destructively set UVs. Necessary if shape keys need to be preserved.")
+        ]
+    ) # type: ignore
 
 
 scene_props = {}

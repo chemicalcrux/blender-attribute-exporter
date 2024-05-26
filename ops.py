@@ -7,8 +7,20 @@ from mathutils import Vector
 
 from .context_managers import EnsureGeonodes
 
-from . import props, ui
+from . import props, ui, library
 from .export import perform_export
+
+
+class UV_Link_Libraries(bpy.types.Operator):
+    bl_idname = "uv.link_library"
+    bl_label = "Link Library"
+
+    def execute(self, context: bpy.types.Context):
+        with bpy.data.libraries.load(library.BLEND_PATH, link=True) as (data_from, data_to):
+            data_to.node_groups = data_from.node_groups
+
+        print(library.get_vertex_node_tree())
+        return {"FINISHED"}
 
 
 class UV_Export(bpy.types.Operator):
