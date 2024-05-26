@@ -43,20 +43,20 @@ def refresh_attribute_choices(self, context) -> None:
                 bm.free()
 
 
-class UVExporterCollection(bpy.types.PropertyGroup):
+class AttributeExporterCollection(bpy.types.PropertyGroup):
     pointer: bpy.props.PointerProperty(
         name="Collection", type=bpy.types.Collection
     )  # type: ignore
 
 
 
-class UVExporterObject(bpy.types.PropertyGroup):
+class AttributeExporterObject(bpy.types.PropertyGroup):
     object: bpy.props.PointerProperty(
         name="Object", type=bpy.types.Object
     )  # type: ignore
 
 
-class UVExporterTarget(bpy.types.PropertyGroup):
+class AttributeExporterTarget(bpy.types.PropertyGroup):
     channel: bpy.props.EnumProperty(
         name="Target Channel",
         items=[
@@ -79,31 +79,31 @@ class UVExporterTarget(bpy.types.PropertyGroup):
     )  # type: ignore
 
 
-class UVExporterAttribute(bpy.types.PropertyGroup):
+class AttributeExporterAttribute(bpy.types.PropertyGroup):
     attribute: bpy.props.StringProperty(name="Attribute")  # type: ignore
 
 
 # can't choose from a collection of strings, so we have to choose
-# from a collection of UVExporterAttribute -- so we need
-# UVExporterAttributeSelection to hold a single #UVExporterAttribute.
-class UVExporterAttributeSelection(bpy.types.PropertyGroup):
+# from a collection of AttributeExporterAttribute -- so we need
+# AttributeExporterAttributeSelection to hold a single #AttributeExporterAttribute.
+class AttributeExporterAttributeSelection(bpy.types.PropertyGroup):
     selection: bpy.props.PointerProperty(
-        name="Attribute", type=UVExporterAttribute
+        name="Attribute", type=AttributeExporterAttribute
     )  # type: ignore
 
 
-class UVExporterEntry(bpy.types.PropertyGroup):
+class AttributeExporterEntry(bpy.types.PropertyGroup):
     label: bpy.props.StringProperty(name="Label")  # type: ignore
     collections: bpy.props.CollectionProperty(
-        name="Collections", type=UVExporterCollection
+        name="Collections", type=AttributeExporterCollection
     )  # type: ignore
     collections_index: bpy.props.IntProperty()  # type: ignore
     objects: bpy.props.CollectionProperty(
-        name="Objects", type=UVExporterObject
+        name="Objects", type=AttributeExporterObject
     )  # type: ignore
     objects_index: bpy.props.IntProperty()  # type: ignore
     attributes: bpy.props.CollectionProperty(
-        name="Attributes", type=UVExporterAttributeSelection
+        name="Attributes", type=AttributeExporterAttributeSelection
     )  # type: ignore
     attributes_index: bpy.props.IntProperty()  # type: ignore
 
@@ -121,10 +121,10 @@ class UVExporterEntry(bpy.types.PropertyGroup):
 
         return list(filter(lambda x: x.type == 'MESH', result))
 
-class UVExporterPackage(bpy.types.PropertyGroup):
+class AttributeExporterPackage(bpy.types.PropertyGroup):
     label: bpy.props.StringProperty(name="Label")  # type: ignore
     path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH", default="//")  # type: ignore
-    entries: bpy.props.CollectionProperty(type=UVExporterEntry)  # type: ignore
+    entries: bpy.props.CollectionProperty(type=AttributeExporterEntry)  # type: ignore
     entries_index: bpy.props.IntProperty(update=refresh_attribute_choices)  # type: ignore
     source_uv: bpy.props.EnumProperty(
         name="Index Channel",
@@ -149,18 +149,18 @@ class UVExporterPackage(bpy.types.PropertyGroup):
 
 scene_props = {}
 
-scene_props["uv_exporter_packages"] = bpy.props.CollectionProperty(
-    name="Packages", description="A list of packages", type=UVExporterPackage
+scene_props["attribute_exporter_packages"] = bpy.props.CollectionProperty(
+    name="Packages", description="A list of packages", type=AttributeExporterPackage
 )
 
-scene_props["uv_exporter_packages_index"] = bpy.props.IntProperty(
+scene_props["attribute_exporter_packages_index"] = bpy.props.IntProperty(
     name="Objects index",
     description="Object list index",
     update=refresh_attribute_choices,
 )
 
 scene_props["attribute_choices"] = bpy.props.CollectionProperty(
-    name="Attribute Choices", type=UVExporterAttribute
+    name="Attribute Choices", type=AttributeExporterAttribute
 )
 
 

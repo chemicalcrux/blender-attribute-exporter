@@ -12,7 +12,7 @@ from .export import perform_export
 
 
 class UV_Link_Libraries(bpy.types.Operator):
-    bl_idname = "uv.link_library"
+    bl_idname = "attribute_exporter.link_library"
     bl_label = "Link Library"
 
     def execute(self, context: bpy.types.Context):
@@ -24,7 +24,7 @@ class UV_Link_Libraries(bpy.types.Operator):
 
 
 class UV_Export(bpy.types.Operator):
-    bl_idname = "uv.export"
+    bl_idname = "attribute_exporter.export"
     bl_label = "Export Data"
 
     def execute(self, context: bpy.types.Context):
@@ -39,18 +39,18 @@ class UV_Export(bpy.types.Operator):
 
 
 class UV_Export_All(bpy.types.Operator):
-    bl_idname = "uv.export_all"
+    bl_idname = "attribute_exporter.export_all"
     bl_label = "Export All Data"
 
     def execute(self, context: bpy.types.Context):
-        for package in context.scene.uv_exporter_packages:
+        for package in context.scene.attribute_exporter_packages:
             perform_export(context, package)
 
         return {"FINISHED"}
 
 
 class UV_Refresh(bpy.types.Operator):
-    bl_idname = "uv.refresh"
+    bl_idname = "attribute_exporter.refresh"
     bl_label = "Refresh Attribute Choices"
 
     def execute(self, context: bpy.types.Context):

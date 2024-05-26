@@ -12,11 +12,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 bl_info = {
-    "name" : "blender-uv-exporter",
+    "name" : "Attribute Exporter",
     "author" : "Fen Dweller",
     "description" : "",
     "blender" : (2, 80, 0),
-    "version" : (0, 0, 1),
+    "version" : (0, 1, 0),
     "location" : "",
     "warning" : "",
     "category" : "Generic"

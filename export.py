@@ -58,7 +58,7 @@ class Plan:
 
 
 def perform_export(
-    context: bpy.types.Context, package: props.UVExporterPackage
+    context: bpy.types.Context, package: props.AttributeExporterPackage
 ) -> None:
     plan = Plan()
 
