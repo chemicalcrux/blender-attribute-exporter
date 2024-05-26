@@ -80,13 +80,11 @@ class UVRootPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        box = layout.box()
-        box.label(text="Hello!!!")
-
         if not library.library_exists():
-            box.operator("uv.link_library")
-
-        box.operator("uv.export_all")
+            layout.operator("uv.link_library")
+        else:
+            layout.label(text=f"Packages: {len(context.scene.uv_exporter_packages)}")
+            layout.operator("uv.export_all")
 
 
 class UVScenePanel(bpy.types.Panel):
@@ -105,8 +103,7 @@ class UVScenePanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        box = layout.box()
-        box.template_list(
+        layout.template_list(
             "UV_UL_PackageList",
             "Packages",
             context.scene,
@@ -115,7 +112,7 @@ class UVScenePanel(bpy.types.Panel):
             "uv_exporter_packages_index",
         )
 
-        row = box.row()
+        row = layout.row()
 
         row.operator("uv.package_list_add", text="+")
         row.operator("uv.package_list_delete", text="-")
@@ -137,15 +134,14 @@ class UVPackagePanel(bpy.types.Panel):
     def draw(self, context):
         package = get_current_package(context)
         layout = self.layout
-        box = layout.box()
 
-        props = box.operator("uv.export")
+        props = layout.operator("uv.export")
 
-        box.prop(package, "label")
+        layout.prop(package, "label")
 
-        box.prop(package, "path")
+        layout.prop(package, "path")
 
-        box.template_list(
+        layout.template_list(
             "UV_UL_EntryList",
             "Entries",
             package,
@@ -153,13 +149,13 @@ class UVPackagePanel(bpy.types.Panel):
             package,
             "entries_index",
         )
-        row = box.row()
+        row = layout.row()
 
         row.operator("uv.entry_list_add", text="+")
         row.operator("uv.entry_list_delete", text="-")
 
-        box.prop(package, "source_uv")
-        box.prop(package, "default_vertex_storage")
+        layout.prop(package, "source_uv")
+        layout.prop(package, "default_vertex_storage")
 
 
 class UVEntryPanel(bpy.types.Panel):
@@ -178,14 +174,12 @@ class UVEntryPanel(bpy.types.Panel):
     def draw(self, context):
         entry = get_current_entry(context)
         layout = self.layout
-        box = layout.box()
-
-        box.prop(entry, "label")
+        layout.prop(entry, "label")
 
 
 class UVObjectsPanel(bpy.types.Panel):
     bl_idname = "OBJECT_PT_UV_objects_panel"
-    bl_parent_id = "OBJECT_PT_UV_root_panel"
+    bl_parent_id = "OBJECT_PT_UV_entry_panel"
     bl_label = "Objects"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -199,7 +193,12 @@ class UVObjectsPanel(bpy.types.Panel):
     def draw(self, context):
         entry = get_current_entry(context)
         layout = self.layout
-        box = layout.box()
+        
+        row = layout.row()
+        split = row.split(factor=0.5)
+
+        box = split.box()
+        box.label(text="Collections")
         box.template_list(
             "UV_UL_CollectionList",
             "Collections",
@@ -209,11 +208,12 @@ class UVObjectsPanel(bpy.types.Panel):
             "collections_index",
         )
 
-        row = box.row()
+        inner_row = box.row()
 
-        row.operator("uv.collection_list_add", text="+")
-        row.operator("uv.collection_list_delete", text="-")
+        inner_row.operator("uv.collection_list_add", text="+")
 
+        box = split.box()
+        box.label(text="Objects")
         box.template_list(
             "UV_UL_ObjectList",
             "Objects",
@@ -223,15 +223,14 @@ class UVObjectsPanel(bpy.types.Panel):
             "objects_index",
         )
 
-        row = box.row()
+        inner_row = box.row()
 
-        row.operator("uv.object_list_add", text="+")
-        row.operator("uv.object_list_delete", text="-")
+        inner_row.operator("uv.object_list_add", text="+")
 
 
 class UVAttributesPanel(bpy.types.Panel):
     bl_idname = "OBJECT_PT_UV_attributes_panel"
-    bl_parent_id = "OBJECT_PT_UV_root_panel"
+    bl_parent_id = "OBJECT_PT_UV_entry_panel"
     bl_label = "Attributes"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -245,11 +244,10 @@ class UVAttributesPanel(bpy.types.Panel):
     def draw(self, context):
         entry = get_current_entry(context)
         layout = self.layout
-        box = layout.box()
 
-        box.operator("uv.refresh")
+        layout.operator("uv.refresh")
 
-        box.template_list(
+        layout.template_list(
             "UV_UL_AttributeList",
             "Attributes",
             entry,
@@ -258,7 +256,7 @@ class UVAttributesPanel(bpy.types.Panel):
             "attributes_index",
         )
 
-        row = box.row()
+        row = layout.row()
 
         row.operator("uv.attribute_list_add", text="+")
         row.operator("uv.attribute_list_delete", text="-")
@@ -393,8 +391,12 @@ class UV_UL_CollectionList(bpy.types.UIList):
     ):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row()
-            row.prop(item, "pointer")
+            split = row.split(factor=0.75)
+            split.prop(item, "pointer", text='')
+            op = split.operator("uv.collection_list_delete", text="-")
+            op.index = index
         elif self.layout_type in {"GRID"}:
+            
             layout.alignment = "CENTER"
             layout.label(text="", icon="OBJECT_DATAMODE")
 
@@ -412,6 +414,7 @@ class UV_CollectionList_Add(bpy.types.Operator):
 class UV_CollectionList_Delete(bpy.types.Operator):
     bl_idname = "uv.collection_list_delete"
     bl_label = "Delete view"
+    index: bpy.props.IntProperty() # type: ignore
 
     @classmethod
     def poll(self, context: bpy.types.Context):
@@ -420,7 +423,7 @@ class UV_CollectionList_Delete(bpy.types.Operator):
     def execute(self, context: bpy.types.Context):
         entry = get_current_entry(context)
         lst = entry.collections
-        index = entry.collections_index
+        index = self.index
 
         entry.collections_index = remove_from_list(lst, index)
         return {"FINISHED"}
@@ -441,7 +444,10 @@ class UV_UL_ObjectList(bpy.types.UIList):
     ):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row()
-            row.prop(item, "object")
+            split = row.split(factor=0.75)
+            split.prop(item, "object", text='')
+            op = split.operator("uv.object_list_delete", text="-")
+            op.index = index
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
             layout.label(text="", icon="OBJECT_DATAMODE")
@@ -460,6 +466,7 @@ class UV_ObjectList_Add(bpy.types.Operator):
 class UV_ObjectList_Delete(bpy.types.Operator):
     bl_idname = "uv.object_list_delete"
     bl_label = "Delete view"
+    index: bpy.props.IntProperty() # type: ignore
 
     @classmethod
     def poll(self, context: bpy.types.Context):
@@ -468,7 +475,7 @@ class UV_ObjectList_Delete(bpy.types.Operator):
     def execute(self, context: bpy.types.Context):
         entry = get_current_entry(context)
         lst = entry.objects
-        index = entry.objects_index
+        index = self.index
 
         entry.objects_index = remove_from_list(lst, index)
         return {"FINISHED"}
@@ -537,9 +544,7 @@ class UVGeonodePanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        box = layout.box()
-
-        box.template_list(
+        layout.template_list(
             "UV_UL_GeonodeList",
             "GeoNode Trees",
             context.scene,
@@ -548,7 +553,7 @@ class UVGeonodePanel(bpy.types.Panel):
             "toggled_geonode_trees_index",
         )
 
-        row = box.row()
+        row = layout.row()
 
         row.operator("uv.geonode_list_add", text="+")
         row.operator("uv.geonode_list_delete", text="-")
