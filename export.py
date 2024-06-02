@@ -50,7 +50,7 @@ class Plan:
                 seen.add(attribute)
 
     def get_steps(self) -> Iterator[Step]:
-        for step in self.steps.values():
+        for step in sorted(self.steps.values(), key=lambda step: step.obj.name):
             yield step
 
     def get_object_count(self) -> int:
@@ -69,9 +69,6 @@ def perform_export(
                 plan.add(obj, item.selection.attribute)
 
     plan.validate()
-
-    for step in plan.get_steps():
-        print(step)
 
     output = b""
 
@@ -135,18 +132,17 @@ def write_object(step: Step):
         obj.data.uv_layers[source_uv_layer].name = "Vertex ID"
 
 
-    for attribute in step.attributes:
-        output += write_attrs(obj, attribute)
+    for attribute in sorted(step.attributes):
+        output += write_attribute(obj, attribute)
 
     if step.vertex_storage == 'BAKED':
-        print("Baking vertex indices")
 
         for idx, loop in enumerate(obj.data.loops):
             obj.data.uv_layers[source_uv_layer].data[idx].uv = Vector((loop.vertex_index, 0))
 
     return output
 
-def write_attrs(obj: bpy.types.Object, attribute: str) -> None:
+def write_attribute(obj: bpy.types.Object, attribute: str) -> None:
     output = b""
 
     depsgraph = bpy.context.evaluated_depsgraph_get()
